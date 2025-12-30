@@ -120,6 +120,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./scripts/entrypoint.sh:/opt/airflow/scripts/entrypoint.sh
+      - ./requirements.txt:/opt/airflow/requirements.txt
     ports:
       - "8080:8080"
     healthcheck:
