@@ -1,9 +1,10 @@
 import requests 
 import json
 import time 
+import logging
 from datetime import datetime
 from airflow import DAG 
-from airflow.providers.standard.operators.python import PythonOperator
+from airflow.operators.python import PythonOperator # type: ignore
 from kafka import KafkaProducer
 
 default_args = {
@@ -44,22 +45,30 @@ def stream_data():
     """
     stream data into kafka queue 
     """
-    raw_data = get_data()
-    data = format_data(raw_data)
+    producer = KafkaProducer(bootstrap_servers = ['broker:29092'], max_block_ms = 5000) 
+    cur_time = time.time()
 
-    producer = KafkaProducer(bootstrap_servers = ['localhost:9092'], max_block_ms = 5000) 
+    while True:
+        """ 
+        keep doing the work for 1 minutes, then stop and mark
+        as done
+        """
+        if time.time() > cur_time + 60:
+            break
+        try:
+            raw_data = get_data()
+            data = format_data(raw_data)
+            """ push to the queue """
+            producer.send("user_created", json.dumps(data).encode('utf-8')) 
+        except Exception as e:
+            logging.error(f"Error streaming data: {e}")
+            continue
 
-    """ push to the queue """
-    producer.send("user_created", json.dumps(data).encode('utf-8')) 
-     
-# with DAG(
-#     dag_id = "user_automation",
-#     default_args = default_args,
-#     schedule = "@daily",
-# ) as dag:
-#     streaming_task = PythonOperator(
-#         task_id = "stream_data_from_api", 
-#         python_callable = stream_data())
-
-if __name__ == "__main__":
-    stream_data()
+with DAG(
+    dag_id = "user_automation",
+    default_args = default_args,
+    schedule = "@daily",
+    catchup = False) as dag:
+    streaming_task = PythonOperator(
+        task_id = "stream_data_from_api", 
+        python_callable = stream_data)
