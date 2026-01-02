@@ -2,6 +2,7 @@ import requests
 import json
 import time 
 import logging
+import uuid
 from datetime import datetime
 from airflow import DAG 
 from airflow.operators.python import PythonOperator # type: ignore
@@ -27,6 +28,7 @@ def format_data(data):
     """
     formatted_data = {}
 
+    formatted_data['id'] = str(uuid.uuid4())
     formatted_data['first_name'] = data['name']['first']
     formatted_data['last_name'] = data['name']['last']
     formatted_data['gender'] = data['gender']
