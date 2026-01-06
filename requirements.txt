@@ -1,4 +1,4 @@
 requests
 kafka-python
-cassandra-driver
 pyspark
+websocket-client
